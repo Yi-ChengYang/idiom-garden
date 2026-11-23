@@ -1,0 +1,33 @@
+name: Import V4 website sources
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve packaged V4 source
+        run: |
+          set -euo pipefail
+          if test -s dist/index.html; then
+            echo "V4 site sources already present"
+            exit 0
+          fi
+          curl --fail --location --silent --show-error --retry 2 --max-time 120 'https://at.adobe.com/ZsPPX2pVKCsHgfV2' --output /tmp/idiom-site.zip
+          unzip -t /tmp/idiom-site.zip >/dev/null
+          unzip -q /tmp/idiom-site.zip
+          test -s idiom-garden/dist/index.html
+          cp -a idiom-garden/. .
+          rm -rf idiom-garden
+          test -s dist/index.html
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md .github src dist build.py tests GEMINI_REVIEW_PROMPT.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'Import original Idiom Garden V4 package'
+            git push
+          fi
